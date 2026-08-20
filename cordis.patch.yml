@@ -1,0 +1,18 @@
+# dsh bundle layer: mount the llm-verifier plugin (dsh/index.js via the package root export).
+#
+# Backend: the scnet relay is confirmed to REJECT logprobs (the verifier's hard
+# requirement), so the default points at DeepSeek official, which returns real
+# token logprobs. The API key is auto-resolved from the DSH credential store via
+# the apiKeyEnv ref (DEEPSEEK_API_KEY is present there). Override baseUrl /
+# apiKeyEnv / model for another logprobs-capable backend.
+- insert:
+    - id: llm-verifier
+      name: dsh-llm-verifier
+      config:
+        autoResolveFromDsh: true
+        baseUrl: https://api.deepseek.com
+        apiKeyEnv: DEEPSEEK_API_KEY
+        model: deepseek-v4-flash
+        nEvaluations: 4
+        pivots: 2
+        maxConcurrency: 4

@@ -1,0 +1,36 @@
+{
+  "name": "dsh-llm-verifier",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Native DeepSeek Harness (Cordis) plugin: LLM-as-a-Verifier as agent tools (best-of-N select, pairwise compare, step-wise track, token accounting)",
+  "license": "MIT",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "llm-as-a-verifier",
+    "llm-verifier",
+    "reward-model",
+    "verification",
+    "best-of-n",
+    "progress-tracking"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "exports": {
+    ".": "./dsh/index.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": ["dsh", "skills", "cordis.patch.yml", "README.md", "LICENSE", "CHANGELOG.md"],
+  "scripts": {
+    "test": "node scripts/dry-run.mjs",
+    "pack": "pnpm pack"
+  }
+}

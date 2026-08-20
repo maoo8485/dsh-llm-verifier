@@ -116,9 +116,24 @@ printf '%s\n' '{"id":1,"method":"compare","params":{"problem":"Reverse a string"
   | <venv-python> dsh/python/sidecar.py
 ```
 
+## Attribution / 来源
+
+This plugin is a DeepSeek Harness integration of **LLM-as-a-Verifier**, the
+open-source verification framework this repo wraps:
+
+- **Project**: [llm-as-a-verifier/llm-as-a-verifier](https://github.com/llm-as-a-verifier/llm-as-a-verifier)
+  (the Python package `llm-verifier`)
+- **Paper**: *LLM-as-a-Verifier: A General-Purpose Verification Framework*,
+  Kwok et al., [arXiv:2607.05391](https://arxiv.org/abs/2607.05391)
+- **Website**: [llm-as-a-verifier.com](https://llm-as-a-verifier.com) ・
+  [Documentation](https://llm-as-a-verifier.com/docs/)
+
+`llm-verifier` is distributed under the MIT License; this package is likewise
+MIT. This package adds the DSH-native tool + skill surface on top of that
+library — all verification/scoring logic comes from the upstream project.
+
 ## License
 
 [MIT](LICENSE)
 
-Built on [llm-as-a-verifier](https://github.com/llm-as-a-verifier/llm-as-a-verifier)
-(MIT). See [CHANGELOG.md](CHANGELOG.md).
+See [CHANGELOG.md](CHANGELOG.md) for release history.

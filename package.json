@@ -4,6 +4,14 @@
   "type": "module",
   "description": "Native DeepSeek Harness (Cordis) plugin: LLM-as-a-Verifier as agent tools (best-of-N select, pairwise compare, step-wise track, token accounting)",
   "license": "MIT",
+  "homepage": "https://github.com/maoo8485/dsh-llm-verifier",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/maoo8485/dsh-llm-verifier.git"
+  },
+  "bugs": {
+    "url": "https://github.com/maoo8485/dsh-llm-verifier/issues"
+  },
   "keywords": [
     "deepseek-harness",
     "dsh",

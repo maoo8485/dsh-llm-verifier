@@ -1,0 +1,20 @@
+# Dependencies / build artifacts
+node_modules/
+*.tgz
+
+# Python (sidecar bytecode)
+__pycache__/
+*.pyc
+
+# Verifier run state
+cache/
+results/
+
+# Local env / secrets
+.env
+.env.local
+*.pem
+
+# macOS / editor
+.DS_Store
+*.log

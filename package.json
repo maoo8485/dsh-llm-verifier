@@ -36,7 +36,7 @@
       "patch": "./cordis.patch.yml"
     }
   },
-  "files": ["dsh", "skills", "cordis.patch.yml", "README.md", "LICENSE", "CHANGELOG.md"],
+  "files": ["dsh", "skills", "cordis.patch.yml", "README.md", "UPGRADING.md", "LICENSE", "CHANGELOG.md"],
   "scripts": {
     "test": "node scripts/dry-run.mjs",
     "pack": "pnpm pack"

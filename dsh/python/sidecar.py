@@ -35,6 +35,42 @@ FALLBACK_CRITERIA = {"Overall": "Does the trajectory correctly and completely so
 USAGE_KEYS = ("calls", "input_tokens", "cached_input_tokens",
               "uncached_input_tokens", "output_tokens", "reasoning_tokens",
               "cache_hit_rate")
+# Minimum `llm-verifier` version this wrapper is tested against. The sidecar
+# uses select/compare/track/token_usage + the `client=` argument +
+# `_llm_verifier_deepseek` flag. Bump this floor when the wrapper relies on
+# newer upstream behavior; below it we fail with a clear message instead of an
+# obscure error (see UPGRADING.md).
+MIN_LLM_VERIFIER = (0, 2, 0)
+
+
+def _version_tuple(spec):
+    parts = []
+    for seg in str(spec or "").split("."):
+        digits = ""
+        for ch in seg:
+            if ch.isdigit():
+                digits += ch
+            else:
+                break
+        parts.append(int(digits) if digits else 0)
+    return tuple(parts)
+
+
+def _version_check():
+    """(spec, ok) — the installed llm-verifier version and whether it meets
+    the minimum floor. Never raises: an unreadable version is treated as ok so
+    the wrapper doesn't invent a failure."""
+    try:
+        spec = str(getattr(llm_verifier, "__version__", "0"))
+        return spec, _version_tuple(spec) >= MIN_LLM_VERIFIER
+    except Exception:
+        return "?", True
+
+
+def _version_error(spec):
+    return (f"llm-verifier {spec} is below the minimum supported "
+            f"{'.'.join(map(str, MIN_LLM_VERIFIER))}; upgrade it with: "
+            f"pip install -U llm-verifier")
 
 
 def build_client():
@@ -125,6 +161,10 @@ def handle(method, params):
 
 
 def main():
+    ver_spec, ver_ok = _version_check()
+    sys.stderr.write(f"[llm-verifier sidecar] llm_verifier version: {ver_spec}"
+                     f" (minimum {'.'.join(map(str, MIN_LLM_VERIFIER))})\n")
+    sys.stderr.flush()
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -134,9 +174,12 @@ def main():
             request = json.loads(line)
             rid = request.get("id")
             method = request.get("method")
-            params = request.get("params") or {}
-            result = handle(method, params)
-            response = {"id": rid, "result": result, "usage": _usage_snapshot()}
+            if not ver_ok:
+                response = {"id": rid, "error": _version_error(ver_spec)}
+            else:
+                params = request.get("params") or {}
+                result = handle(method, params)
+                response = {"id": rid, "result": result, "usage": _usage_snapshot()}
         except Exception as exc:  # never let one bad request kill the sidecar
             sys.stderr.write(
                 f"[llm-verifier sidecar] {request.get('method')} failed: "

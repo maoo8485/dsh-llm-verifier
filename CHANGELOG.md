@@ -23,6 +23,9 @@ Initial public release.
   (default DeepSeek official), API key is resolved from the DSH credential
   store via `apiKeyEnv` — no separate key configuration.
 - Self-test script (`scripts/dry-run.mjs`) and `npm test` entry.
+- Upstream maintenance: [UPGRADING.md](UPGRADING.md) guide and an
+  `llm-verifier` minimum-version check in the sidecar (clear error below
+  `0.2.0` instead of an obscure failure).
 
 ### Fixed
 - Tool `execute` signature matches DSH's `ToolRuntime` convention

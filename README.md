@@ -29,6 +29,12 @@ spawns a bundled Python sidecar (`dsh/python/sidecar.py`) that calls
    Point the plugin at it with `config.pythonBin` (see Configuration). If the
    configured bin does not exist, the plugin falls back to `python3`/`python`
    on `PATH`.
+
+   The plugin is tested against **`llm-verifier ≥ 0.2.0`**; the sidecar checks
+   the installed version and reports a clear message if it's below the
+   minimum. When upstream releases a new version, see
+   [UPGRADING.md](UPGRADING.md) — usually it's just `pip install -U
+   llm-verifier`.
 3. **A verifier backend that returns token-level logprobs.** Default is DeepSeek
    official (`https://api.deepseek.com`, model `deepseek-v4-flash`); the API key
    is resolved automatically from the DSH credential store via `config.apiKeyEnv`

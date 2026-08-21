@@ -80,6 +80,8 @@ layer defaults) or overridden by the profile's `cordis.patch.yml`:
 | `pivots` | `2` | pivot count k (select) |
 | `maxConcurrency` | `4` | reserved for future parallel sidecars |
 | `apiKey` | — | explicit key; overrides `apiKeyEnv` resolution |
+| `autoTrigger` | `true` | keep the auto-trigger policy in the registered skill; `false` strips it (manual calls only) |
+| `maxBudgetTokens` | — | hard cap on cumulative verifier input tokens; calls fail with a clear error above it |
 
 Example overlay (`~/.dsh/profiles/<profile>/cordis.patch.yml`):
 
@@ -91,7 +93,24 @@ Example overlay (`~/.dsh/profiles/<profile>/cordis.patch.yml`):
     baseUrl: https://api.deepseek.com
     apiKeyEnv: DEEPSEEK_API_KEY
     model: deepseek-v4-flash
+    autoTrigger: true
+    maxBudgetTokens: 200000
 ```
+
+## Auto-trigger (legal / compliance work)
+
+The registered `llm-verifier` skill carries an **auto-trigger policy** tuned for
+contract review, institutional/policy analysis, and legal-regulatory research:
+the agent automatically runs `compare`/`select`/`track` at defined checkpoints
+(e.g. after a key-clause rewrite, when ≥2 candidate rewrites exist, during long
+research), with frequency caps and cost guardrails. It also ships three ready
+criteria presets (`criteria/contract_review.md`, `criteria/institutional_analysis.md`,
+`criteria/legal_research.md`).
+
+- Disable auto-trigger: `autoTrigger: false` (skill falls back to manual calls).
+- Hard budget: `maxBudgetTokens` stops the verifier above a token cap.
+- Full strategy, calibration steps, and cost data: see
+  [docs/AUTO_TRIGGER.md](docs/AUTO_TRIGGER.md).
 
 ## Usage
 

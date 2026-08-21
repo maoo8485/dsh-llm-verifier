@@ -5,6 +5,10 @@
 # token logprobs. The API key is auto-resolved from the DSH credential store via
 # the apiKeyEnv ref (DEEPSEEK_API_KEY is present there). Override baseUrl /
 # apiKeyEnv / model for another logprobs-capable backend.
+#
+# autoTrigger: true keeps the auto-trigger policy in the registered skill
+# (legal-work checkpoints); set false to strip it and fall back to manual calls.
+# maxBudgetTokens: optional hard cap on cumulative verifier input tokens.
 - insert:
     - id: llm-verifier
       name: dsh-llm-verifier
@@ -16,3 +20,4 @@
         nEvaluations: 4
         pivots: 2
         maxConcurrency: 4
+        autoTrigger: true

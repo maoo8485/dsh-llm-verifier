@@ -26,6 +26,12 @@ Initial public release.
 - Upstream maintenance: [UPGRADING.md](UPGRADING.md) guide and an
   `llm-verifier` minimum-version check in the sidecar (clear error below
   `0.2.0` instead of an obscure failure).
+- Auto-trigger strategy for legal/compliance work:
+  `docs/AUTO_TRIGGER.md`, three legal criteria presets
+  (`criteria/contract_review.md`, `criteria/institutional_analysis.md`,
+  `criteria/legal_research.md`), an auto-trigger policy section in the skill
+  (toggleable via `config.autoTrigger`), and a hard token budget
+  (`config.maxBudgetTokens`).
 
 ### Fixed
 - Tool `execute` signature matches DSH's `ToolRuntime` convention

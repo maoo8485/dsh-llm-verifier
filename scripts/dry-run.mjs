@@ -44,6 +44,18 @@ for (const t of tools) {
 assert(skills.length === 1 && skills[0].name === 'llm-verifier',
   `skill registered: ${skills[0]?.name}`)
 
+// autoTrigger: skill content carries the auto-trigger policy by default, and
+// `autoTrigger: false` strips it.
+assert(skills[0].content.includes('<!-- auto-trigger:start -->'),
+  'skill content includes auto-trigger policy by default')
+const skillsOff = []
+apply({ ...ctx, skills: { register: (s) => skillsOff.push(s) } },
+  { ...config, autoTrigger: false })
+assert(skillsOff.length === 1 &&
+  !skillsOff[0].content.includes('<!-- auto-trigger:start -->') &&
+  skillsOff[0].content.includes('llm_verifier_compare'),
+  'autoTrigger:false strips the auto-trigger policy but keeps tool docs')
+
 // Mirror dsh-tools' enforced JSON Schema subset so a schema keyword that the
 // registry would reject is caught here first (see dsh-tools constraint set).
 const SUPPORTED_SCHEMA_KEYWORDS = new Set([
@@ -73,6 +85,18 @@ for (const t of tools) {
   }
 }
 console.log('ok: all tool schemas within the dsh-tools enforced JSON Schema subset')
+
+// maxBudgetTokens: a zero budget must hard-stop a verifier call with a clear
+// error BEFORE any network/sidecar work.
+const budgetTools = []
+apply({ ...ctx, tools: { register: (d) => budgetTools.push(d) } },
+  { ...config, maxBudgetTokens: 0 })
+const budgetSelect = budgetTools.find((t) => t.name === 'llm_verifier_select')
+const budgetOutcome = await budgetSelect.execute({
+  problem: 'x', candidates: ['a', 'b'], criteria: { C: 'c' },
+}, {}).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e: String(e && e.message || e) }))
+assert(!budgetOutcome.ok && /budget exceeded/.test(budgetOutcome.e),
+  `budget guard fails fast with a clear message: ${budgetOutcome.e}`)
 
 // End-to-end wiring: select.execute spawns the sidecar; expect a clean Error
 // (network unreachable), not a hang or crash. Call it the way DSH's

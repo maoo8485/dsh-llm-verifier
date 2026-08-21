@@ -71,6 +71,13 @@ const defaultConfig = {
   baseUrl: undefined,
   apiKeyEnv: undefined,
   apiKey: undefined,
+  // autoTrigger=true: the registered skill carries the auto-trigger policy
+  // (see the marked section in skills/llm-verifier/SKILL.md). Set false to
+  // strip it and fall back to manual invocation only.
+  autoTrigger: true,
+  // maxBudgetTokens: hard-stop verifier tool calls once the plugin's
+  // cumulative verifier INPUT tokens reach this (undefined = unlimited).
+  maxBudgetTokens: undefined,
 }
 
 // ---------------------------------------------------------------------------
@@ -225,6 +232,22 @@ const accumulateUsage = (acc, usage) => {
   acc.cache_hit_rate = acc.input_tokens > 0 ? acc.cached_input_tokens / acc.input_tokens : 0
 }
 
+// Skill body with the auto-trigger policy section stripped when autoTrigger is
+// disabled (see the `<!-- auto-trigger:start -->`/`end` markers in SKILL.md).
+const AUTOTRIGGER_START = '<!-- auto-trigger:start -->'
+const AUTOTRIGGER_END = '<!-- auto-trigger:end -->'
+function skillContent(config) {
+  let text = readFileSync(SKILL_PATH, 'utf8')
+  if (config.autoTrigger === false) {
+    const start = text.indexOf(AUTOTRIGGER_START)
+    const end = text.indexOf(AUTOTRIGGER_END)
+    if (start !== -1 && end !== -1 && end > start) {
+      text = text.slice(0, start) + text.slice(end + AUTOTRIGGER_END.length)
+    }
+  }
+  return text
+}
+
 // ---------------------------------------------------------------------------
 // Plugin
 // ---------------------------------------------------------------------------
@@ -254,6 +277,14 @@ export function apply(ctx, config = {}) {
       // arguments come first and the run context (signal, agent, ...) second —
       // NOT the modlens-style `execute(exec)` with exec.arguments.
       async execute(args, exec) {
+        if (typeof cfg.maxBudgetTokens === 'number' &&
+            usage.input_tokens >= cfg.maxBudgetTokens) {
+          throw new Error(
+            `[llm-verifier] verifier token budget exceeded (` +
+            `${usage.input_tokens} >= ${cfg.maxBudgetTokens} input tokens); ` +
+            `raise config.maxBudgetTokens or reset with ` +
+            `llm_verifier_token_usage reset=true`)
+        }
         const call = await runSidecar(ctx, cfg, methodFor, args, exec?.signal)
         accumulateUsage(usage, call.usage)
         return call.result
@@ -377,7 +408,7 @@ export function apply(ctx, config = {}) {
         // `source` is required by dsh-skill's validateDefinition when the
         // skill is loaded (the runtime provider defaults provider to "runtime").
         source: 'dsh-llm-verifier',
-        content: readFileSync(SKILL_PATH, 'utf8'),
+        content: skillContent(cfg),
       })
     } catch (error) {
       console.error(`[llm-verifier] skill registration skipped: ${error}`)

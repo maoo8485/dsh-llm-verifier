@@ -30,6 +30,10 @@ cd <this repo> && npm test
 
 If the sidecar reports a version below the minimum, run the upgrade above.
 
+> Tip: with `autoProvision: true` (default), the plugin recreates a missing
+> venv on the first tool call, so an engine-only "upgrade" can also be done by
+> deleting the venv and letting the plugin re-provision it fresh.
+
 ## 2) Update the wrapper (only when the upstream API changes)
 
 1. Read the upstream

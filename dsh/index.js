@@ -14,7 +14,7 @@
 import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const SIDECAR_PATH = fileURLToPath(new URL('./python/sidecar.py', import.meta.url))
@@ -78,6 +78,12 @@ const defaultConfig = {
   // maxBudgetTokens: hard-stop verifier tool calls once the plugin's
   // cumulative verifier INPUT tokens reach this (undefined = unlimited).
   maxBudgetTokens: undefined,
+  // autoProvision=true (self-heal): if the configured pythonBin does not
+  // exist, the plugin provisions it on demand — `python3 -m venv` + pip
+  // install `llm-verifier` — so a deleted/rebuilt machine venv does not break
+  // the tools after a DSH restart. Needs network + python3 on PATH the first
+  // time. Set false to require an existing venv (clear error otherwise).
+  autoProvision: true,
 }
 
 // ---------------------------------------------------------------------------
@@ -130,22 +136,73 @@ async function resolveBackend(ctx, config) {
 // Sidecar invocation (one-shot spawn, JSON-lines protocol)
 // ---------------------------------------------------------------------------
 
+// Resolve the venv python that must run the sidecar. Self-healing: when
+// `autoProvision` and the configured bin is missing, create the venv and pip
+// install `llm-verifier` once (cached so concurrent calls share one attempt).
+let provisionPromise = null
+async function ensurePythonBin(config) {
+  const configured = config.pythonBin || DEFAULT_PYTHON
+  if (existsSync(configured)) return configured
+  const base = process.platform === 'win32' ? 'python' : 'python3'
+
+  if (config.autoProvision === false) {
+    throw new Error(
+      `[llm-verifier] verifier python not found at ${configured} and ` +
+      `autoProvision is disabled; create the venv (python3 -m venv <dir> && ` +
+      `<dir>/bin/pip install llm-verifier) or set config.autoProvision=true`)
+  }
+
+  const venvDir = dirname(dirname(configured)) // <venvDir>/bin/python -> <venvDir>
+  if (!provisionPromise) {
+    provisionPromise = (async () => {
+      await execAwaited(base, ['-m', 'venv', venvDir])
+      const pip = process.platform === 'win32'
+        ? join(venvDir, 'Scripts', 'pip.exe') : join(venvDir, 'bin', 'pip')
+      await execAwaited(pip, ['install', '-q', '-U', 'pip', 'llm-verifier'])
+      if (!existsSync(configured)) {
+        throw new Error(`[llm-verifier] venv provisioned but ${configured} still missing`)
+      }
+      return configured
+    })().finally(() => { provisionPromise = null })
+  }
+  return provisionPromise
+}
+
+function execAwaited(cmd, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, { stdio: ['ignore', 'ignore', 'pipe'] })
+    let err = ''
+    child.stderr.on('data', (d) => { err += d.toString() })
+    child.on('error', reject)
+    child.on('exit', (code) => {
+      if (code === 0) resolve()
+      else reject(new Error(`[llm-verifier] ${cmd} ${args.join(' ')} failed (exit ${code}): ${err.slice(-500)}`))
+    })
+  })
+}
+
 function runSidecar(ctx, config, method, params, signal) {
   return new Promise((resolve, reject) => {
     resolveBackend(ctx, config)
-      .then((backend) => {
+      .then(async (backend) => {
         const env = {
           ...process.env,
           LLM_VERIFIER_BASE_URL: backend.baseUrl,
           LLM_VERIFIER_API_KEY: backend.apiKey,
           LLM_VERIFIER_MODEL: backend.model,
         }
-        // Resolve the venv python: configured bin if present, else fall back
-        // to a PATH `python3`/`python`. If that python lacks `llm_verifier`,
-        // the sidecar fails with a clear ModuleNotFoundError.
+        // Resolve the venv python: configured bin if present, else (when
+        // autoProvision is on) provision it; otherwise fall back to a PATH
+        // `python3`/`python` (which then must have llm_verifier).
         const configured = config.pythonBin || DEFAULT_PYTHON
-        const pythonBin = existsSync(configured) ? configured
-          : process.platform === 'win32' ? 'python' : 'python3'
+        let pythonBin
+        if (existsSync(configured)) {
+          pythonBin = configured
+        } else if (config.autoProvision !== false) {
+          pythonBin = await ensurePythonBin(config)
+        } else {
+          pythonBin = process.platform === 'win32' ? 'python' : 'python3'
+        }
         const child = spawn(pythonBin, [SIDECAR_PATH], { env, stdio: ['pipe', 'pipe', 'pipe'] })
         let buf = ''
         let stderrBuf = ''

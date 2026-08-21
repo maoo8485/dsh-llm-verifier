@@ -32,6 +32,10 @@ Initial public release.
   `criteria/legal_research.md`), an auto-trigger policy section in the skill
   (toggleable via `config.autoTrigger`), and a hard token budget
   (`config.maxBudgetTokens`).
+- Self-healing venv (`config.autoProvision`, default `true`): if the
+  configured `pythonBin` is missing, the plugin provisions the venv and
+  installs `llm-verifier` on the first tool call — a deleted/rebuilt venv no
+  longer breaks the tools after a DSH restart.
 
 ### Fixed
 - Tool `execute` signature matches DSH's `ToolRuntime` convention

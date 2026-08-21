@@ -19,16 +19,17 @@ spawns a bundled Python sidecar (`dsh/python/sidecar.py`) that calls
 ## Requirements
 
 1. **DeepSeek Harness Desktop** (or a DSH host) — the web profile is fine.
-2. **A Python venv with `llm-verifier` installed** (Python ≥ 3.9):
+2. **A Python venv with `llm-verifier` installed** (Python ≥ 3.9). Point the
+   plugin at it with `config.pythonBin` (see Configuration). If the venv is
+   missing, the plugin **provisions it automatically** on the first tool call
+   (`autoProvision: true`, needs `python3` on PATH + network) — so a deleted
+   or rebuilt machine venv no longer breaks the tools. Set `autoProvision:
+   false` to require an existing venv:
 
    ```bash
    python3 -m venv ~/.venv/llm-verifier
    ~/.venv/llm-verifier/bin/pip install llm-verifier
    ```
-
-   Point the plugin at it with `config.pythonBin` (see Configuration). If the
-   configured bin does not exist, the plugin falls back to `python3`/`python`
-   on `PATH`.
 
    The plugin is tested against **`llm-verifier ≥ 0.2.0`**; the sidecar checks
    the installed version and reports a clear message if it's below the
@@ -82,6 +83,7 @@ layer defaults) or overridden by the profile's `cordis.patch.yml`:
 | `apiKey` | — | explicit key; overrides `apiKeyEnv` resolution |
 | `autoTrigger` | `true` | keep the auto-trigger policy in the registered skill; `false` strips it (manual calls only) |
 | `maxBudgetTokens` | — | hard cap on cumulative verifier input tokens; calls fail with a clear error above it |
+| `autoProvision` | `true` | self-heal: if `pythonBin` is missing, provision the venv (`python3 -m venv` + `pip install llm-verifier`) on first tool call |
 
 Example overlay (`~/.dsh/profiles/<profile>/cordis.patch.yml`):
 
